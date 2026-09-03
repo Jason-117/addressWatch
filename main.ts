@@ -238,11 +238,12 @@ async function sendEmailNotification(title: string, body: string): Promise<void>
     },
   });
 
+  const tit = encodeMimeSubject(title)
   try {
     await client.send({
       from: SMTP_USER,
       to: MAIL_TO,
-      subject: encodeMimeSubject(title),
+      subject: tit,
       content: body,
       contentType: "text/plain; charset=utf-8",
     });
