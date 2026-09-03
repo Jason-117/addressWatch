@@ -45,21 +45,25 @@ async function getKv(): Promise<Deno.Kv> {
 }
 
 async function isSeen(txId: string): Promise<boolean> {
+  const kv = await getKv();
   const res = await kv.get(["seen_tx", txId]);
   return res.value !== null;
 }
 
 async function markSeen(txId: string): Promise<void> {
+  const kv = await getKv();
   await kv.set(["seen_tx", txId], true);
 }
 
 // 每个地址首次运行时，只记录历史交易、不发通知
 async function isFirstRunFor(address: string): Promise<boolean> {
+  const kv = await getKv();
   const res = await kv.get(["initialized", address]);
   return res.value === null;
 }
 
 async function markInitialized(address: string): Promise<void> {
+  const kv = await getKv();
   await kv.set(["initialized", address], true);
 }
 
