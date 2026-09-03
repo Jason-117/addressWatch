@@ -215,6 +215,10 @@ function formatTxMessage(tx: NormalizedTx, watchAddress: string): { title: strin
 
 
 // 邮件发送
+function b64(s: string): string {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+}
+
 async function sendEmailNotification(title: string, body: string): Promise<void> {
   const client = new SMTPClient({
     connection: {
@@ -234,11 +238,14 @@ async function sendEmailNotification(title: string, body: string): Promise<void>
       from: SMTP_USER,
       to: MAIL_TO,
       subject: title,
-      content: body,
-      contentType: "text/plain; charset=utf-8",
+      mimeContent: [
+        {
+          mimeType: "text/plain; charset=utf-8",
+          content: b64(body),
+          transferEncoding: "base64",
+        },
+      ],
     });
-
-    console.log(`邮件通知已发送给：${MAIL_TO.join(", ")}`);
   } finally {
     await client.close();
   }
