@@ -217,14 +217,6 @@ function formatTxMessage(tx: NormalizedTx, watchAddress: string): { title: strin
 
 
 // 邮件发送
-function encodeMimeSubject(subject: string): string {
-  const bytes = new TextEncoder().encode(subject);
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  const base64 = btoa(binary);
-  return `=?UTF-8?B?${base64}?=`;
-}
-
 async function sendEmailNotification(title: string, body: string): Promise<void> {
   const client = new SMTPClient({
     connection: {
@@ -242,7 +234,7 @@ async function sendEmailNotification(title: string, body: string): Promise<void>
     await client.send({
       from: SMTP_USER,
       to: MAIL_TO,
-      subject: encodeMimeSubject(title),
+      subject: title,
       content: body,
       contentType: "text/plain; charset=utf-8",
     });
