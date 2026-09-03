@@ -242,9 +242,11 @@ async function sendEmailNotification(title: string, body: string): Promise<void>
     await client.send({
       from: SMTP_USER,
       to: MAIL_TO,
-      subject: title,
+      subject: encodeMimeSubject(title),
       content: body,
+      contentType: "text/plain; charset=utf-8",
     });
+
     console.log(`邮件通知已发送给：${MAIL_TO.join(", ")}`);
   } finally {
     await client.close();
