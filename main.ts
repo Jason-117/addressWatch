@@ -300,18 +300,38 @@ Deno.cron("trc20-monitor-check", CRON_SCHEDULE, async () => {
 });
 
 Deno.serve(async (req: Request) => {
-  const url = new URL(req.url);
-  if (url.pathname === "/health") {
-    return new Response("ok", { status: 200 });
-  }
+  try {
+    const url = new URL(req.url);
 
-  if (url.pathname === "/check") {
-    if (CHECK_SECRET && url.searchParams.get("secret") !== CHECK_SECRET) {
-      return new Response("Unauthorized", { status: 401 });
+    if (url.pathname === "/health") {
+      return new Response("ok", { status: 200 });
     }
-    await checkAllAddresses();
-    return new Response("已手动触发一次检查，详情请看部署日志", { status: 200 });
-  }
 
-  return new Response("TRC-20 monitor is running.", { status: 200 });
+    if (url.pathname === "/check") {
+      if (CHECK_SECRET && url.searchParams.get("secret") !== CHECK_SECRET) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      try {
+        await checkAllAddresses();
+        return new Response("已手动触发一次检查，详情请看部署日志", { status: 200 });
+      } catch (e) {
+
+        const message = e instanceof Error ? (e.stack ?? e.message) : String(e);
+        console.error("[/check 处理异常]", e);
+        return new Response(`检查过程中出错：\n\n${message}`, {
+          status: 500,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    }
+
+    return new Response("TRC-20 monitor is running.", { status: 200 });
+  } catch (e) {
+    const message = e instanceof Error ? (e.stack ?? e.message) : String(e);
+    console.error("[顶层请求处理异常]", e);
+    return new Response(`服务器出错：\n\n${message}`, {
+      status: 500,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
 });
