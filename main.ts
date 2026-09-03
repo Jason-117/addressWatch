@@ -31,8 +31,18 @@ const OFFICIAL_USDT_TRC20_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 // 轮询频率
 const CRON_SCHEDULE = "* * * * *"; // 每 1 分钟检查一次
 
-//Deno KV
-const kv = await Deno.openKv();
+// Deno KV
+let _kv: Deno.Kv | null = null;
+
+async function getKv(): Promise<Deno.Kv> {
+  if (_kv) return _kv;
+  const kvPromise = Deno.openKv();
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Deno.openKv() KV库未连接")), 10000)
+  );
+  _kv = await Promise.race([kvPromise, timeoutPromise]);
+  return _kv;
+}
 
 async function isSeen(txId: string): Promise<boolean> {
   const res = await kv.get(["seen_tx", txId]);
@@ -203,6 +213,14 @@ function formatTxMessage(tx: NormalizedTx, watchAddress: string): { title: strin
 
 
 // 邮件发送
+function encodeMimeSubject(subject: string): string {
+  const bytes = new TextEncoder().encode(subject);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  const base64 = btoa(binary);
+  return `=?UTF-8?B?${base64}?=`;
+}
+
 async function sendEmailNotification(title: string, body: string): Promise<void> {
   const client = new SMTPClient({
     connection: {
@@ -283,13 +301,16 @@ Deno.cron("trc20-monitor-check", CRON_SCHEDULE, async () => {
 
 Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
+  if (url.pathname === "/health") {
+    return new Response("ok", { status: 200 });
+  }
 
   if (url.pathname === "/check") {
     if (CHECK_SECRET && url.searchParams.get("secret") !== CHECK_SECRET) {
       return new Response("Unauthorized", { status: 401 });
     }
     await checkAllAddresses();
-    return new Response("已手动触发", { status: 200 });
+    return new Response("已手动触发一次检查，详情请看部署日志", { status: 200 });
   }
 
   return new Response("TRC-20 monitor is running.", { status: 200 });
