@@ -287,8 +287,14 @@ async function checkAllAddresses(): Promise<void> {
 
       try {
         await sendEmailNotification(title, body);
+        await markSeen(tx.txId);
+        console.log(`邮件发送成功，交易已标记：${tx.txId}`);
       } catch (e) {
-        console.error("[邮件发送失败]", e);
+        console.error("[邮件发送失败，本次不标记为已处理]", e);
+
+        const message = e instanceof Error ? (e.stack ?? e.message) : String(e);
+
+        throw new Error(`邮件发送失败：${message}`);
       }
 
       await markSeen(tx.txId);
@@ -319,7 +325,10 @@ Deno.serve(async (req: Request) => {
       }
       try {
         await checkAllAddresses();
-        return new Response("已手动触发一次检查，详情请看部署日志", { status: 200 });
+        return new Response("检查完成。请查看响应内容或服务器日志。", {
+          status: 200,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
       } catch (e) {
 
         const message = e instanceof Error ? (e.stack ?? e.message) : String(e);
