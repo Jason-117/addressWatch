@@ -195,9 +195,7 @@ function formatTxMessage(tx: NormalizedTx, watchAddress: string): { title: strin
   const direction = tx.to === watchAddress ? "收款" : tx.from === watchAddress ? "转出" : "相关";
   const anomalies = checkAnomalies(tx);
 
-  const title = anomalies.length > 0
-    ? `异常交易提醒（${direction}）`
-    : `新的 TRC-20 交易（${direction}）`;
+  const title = anomalies.length > 0 ? `异常交易提醒（${direction}）` : `新的 TRC-20 交易（${direction}）`;
 
   const lines: string[] = [];
   if (anomalies.length > 0) {
@@ -217,14 +215,6 @@ function formatTxMessage(tx: NormalizedTx, watchAddress: string): { title: strin
 
 
 // 邮件发送
-function encodeMimeSubject(subject: string): string {
-  const bytes = new TextEncoder().encode(subject);
-  let binary = "";
-  for (const b of bytes) binary += String.fromCharCode(b);
-  const base64 = btoa(binary);
-  return `=?UTF-8?B?${base64}?=`;
-}
-
 async function sendEmailNotification(title: string, body: string): Promise<void> {
   const client = new SMTPClient({
     connection: {
@@ -238,12 +228,12 @@ async function sendEmailNotification(title: string, body: string): Promise<void>
     },
   });
 
-  const tit = encodeMimeSubject(title)
+
   try {
     await client.send({
       from: SMTP_USER,
       to: MAIL_TO,
-      subject: tit,
+      subject: title,
       content: body,
       contentType: "text/plain; charset=utf-8",
     });
